@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chi Tiêu Cá Nhân</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    body { font-family: 'Segoe UI', system-ui, sans-serif; }
+    .card { transition: all 0.3s ease; }
+    .chart-container { position: relative; height: 260px; }
+    @media (min-width: 1024px) { 
+      .chart-container { height: 340px; } 
+    }
+    .stat-value {
+      font-size: 1.5rem; /* text-2xl */
+      line-height: 1.25;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen pb-20">
+
+<div class="max-w-7xl mx-auto p-4 sm:p-6">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold text-indigo-700 flex items-center gap-3">
+        <i class="fa-solid fa-wallet"></i> 
+        Chi Tiêu Cá Nhân
+      </h1>
+      <p class="text-gray-500 text-sm">Tháng 4/2026 • Phân tích chi tiêu</p>
+    </div>
+    
+    <div class="flex gap-3">
+      <select id="filterMonth" class="bg-white border border-gray-300 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 w-full sm:w-auto">
+        <option value="">Tất cả thời gian</option>
+        <option value="2026-04" selected>Tháng 4/2026</option>
+        <option value="2026-03">Tháng 3/2026</option>
+      </select>
+      <button onclick="resetFilters()" 
+              class="bg-white border border-gray-300 hover:bg-gray-100 px-5 py-3 rounded-2xl flex items-center gap-2 text-sm whitespace-nowrap">
+        <i class="fa-solid fa-rotate"></i>
+        <span class="hidden sm:inline">Đặt lại</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Thống kê tóm tắt - 4 mục chữ bằng nhau -->
+  <div class="grid grid-cols-2 gap-4 mb-8">
+    <!-- Dòng 1 -->
+    <div class="bg-white rounded-3xl p-5 card shadow-sm border border-gray-100">
+      <p class="text-xs text-gray-500">Tổng thu</p>
+      <p id="totalIncome" class="stat-value font-semibold text-emerald-600 mt-2">13.600.000 ₫</p>
+    </div>
+    <div class="bg-white rounded-3xl p-5 card shadow-sm border border-gray-100">
+      <p class="text-xs text-gray-500">Tổng chi</p>
+      <p id="totalExpense" class="stat-value font-semibold text-rose-600 mt-2">12.344.000 ₫</p>
+    </div>
+
+    <!-- Dòng 2 - Ngang hàng -->
+    <div class="bg-white rounded-3xl p-5 card shadow-sm border border-gray-100">
+      <p class="text-xs text-gray-500">Số dư (Thu - Chi)</p>
+      <p id="netBalance" class="stat-value font-semibold text-indigo-700 mt-2">1.256.000 ₫</p>
+    </div>
+    <div class="bg-white rounded-3xl p-5 card shadow-sm border border-gray-100">
+      <p class="text-xs text-gray-500">Số giao dịch</p>
+      <p id="transactionCount" class="stat-value font-semibold text-gray-700 mt-2">30</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Pie Chart -->
+    <div class="bg-white rounded-3xl p-6 card shadow-sm">
+      <h2 class="text-lg font-semibold mb-5 flex items-center gap-2">
+        <i class="fa-solid fa-chart-pie text-indigo-600"></i> 
+        Phân bổ chi tiêu
+      </h2>
+      <div class="chart-container">
+        <canvas id="pieChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Bar Chart -->
+    <div class="bg-white rounded-3xl p-6 card shadow-sm">
+      <h2 class="text-lg font-semibold mb-5 flex items-center gap-2">
+        <i class="fa-solid fa-chart-column text-indigo-600"></i> 
+        Chi theo danh mục
+      </h2>
+      <div class="chart-container">
+        <canvas id="barChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Line Chart -->
+    <div class="bg-white rounded-3xl p-6 card shadow-sm lg:col-span-2">
+      <h2 class="text-lg font-semibold mb-5 flex items-center gap-2">
+        <i class="fa-solid fa-chart-line text-indigo-600"></i> 
+        Xu hướng thu - chi
+      </h2>
+      <div class="chart-container" style="height: 320px;">
+        <canvas id="lineChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Giao dịch gần đây -->
+  <div class="mt-10 bg-white rounded-3xl p-6 card shadow-sm">
+    <h2 class="text-lg font-semibold mb-6 flex items-center gap-2">
+      <i class="fa-solid fa-clock-rotate-left"></i> 
+      Giao dịch gần đây
+    </h2>
+    <div id="transactionList" class="space-y-4 max-h-[420px] overflow-y-auto pr-2">
+      <!-- JS render -->
+    </div>
+  </div>
+</div>
+
+<!-- Nút FAB -->
+<button onclick="alert('Tính năng thêm giao dịch sẽ được triển khai sau!')" 
+        class="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full flex items-center justify-center shadow-lg text-3xl z-50">
+  <i class="fa-solid fa-plus"></i>
+</button>
+
+<script>
+// ==================== DỮ LIỆU (30 giao dịch) ====================
+let transactions = [
+  {id:1, date:"2026-04-01", type:"expense", amount:450000, category:"Ăn uống", note:"Ăn trưa cơm tấm"},
+  {id:2, date:"2026-04-02", type:"income", amount:12000000, category:"Lương", note:"Lương tháng 4"},
+  {id:3, date:"2026-04-03", type:"expense", amount:120000, category:"Di chuyển", note:"Xăng xe"},
+  {id:4, date:"2026-04-04", type:"expense", amount:890000, category:"Mua sắm", note:"Quần áo"},
+  {id:5, date:"2026-04-05", type:"expense", amount:350000, category:"Giải trí", note:"Netflix"},
+  {id:6, date:"2026-04-06", type:"expense", amount:650000, category:"Nhà cửa", note:"Tiền điện nước"},
+  {id:7, date:"2026-04-07", type:"expense", amount:180000, category:"Ăn uống", note:"Cafe sáng"},
+  {id:8, date:"2026-04-08", type:"expense", amount:450000, category:"Sức khỏe", note:"Khám bệnh"},
+  {id:9, date:"2026-04-09", type:"income", amount:800000, category:"Thưởng", note:"Thưởng dự án"},
+  {id:10, date:"2026-04-10", type:"expense", amount:220000, category:"Di chuyển", note:"Grab"},
+  {id:11, date:"2026-04-11", type:"expense", amount:1250000, category:"Mua sắm", note:"Phụ kiện điện thoại"},
+  {id:12, date:"2026-04-12", type:"expense", amount:320000, category:"Ăn uống", note:"Ăn tối nhà hàng"},
+  {id:13, date:"2026-04-13", type:"expense", amount:150000, category:"Giải trí", note:"Game"},
+  {id:14, date:"2026-04-14", type:"expense", amount:980000, category:"Nhà cửa", note:"Tiền nhà"},
+  {id:15, date:"2026-04-15", type:"expense", amount:280000, category:"Di chuyển", note:"Xe bus"},
+  {id:16, date:"2026-04-16", type:"expense", amount:420000, category:"Ăn uống", note:"Siêu thị"},
+  {id:17, date:"2026-04-17", type:"income", amount:500000, category:"Tiết kiệm", note:"Chuyển hũ"},
+  {id:18, date:"2026-04-18", type:"expense", amount:650000, category:"Giáo dục", note:"Khóa học"},
+  {id:19, date:"2026-04-19", type:"expense", amount:195000, category:"Sức khỏe", note:"Vitamin"},
+  {id:20, date:"2026-04-20", type:"expense", amount:380000, category:"Mua sắm", note:"Giày"},
+  {id:21, date:"2026-04-21", type:"expense", amount:270000, category:"Ăn uống", note:"Ăn sáng"},
+  {id:22, date:"2026-04-22", type:"expense", amount:110000, category:"Di chuyển", note:"Xăng"},
+  {id:23, date:"2026-04-23", type:"expense", amount:750000, category:"Giải trí", note:"Du lịch ngắn"},
+  {id:24, date:"2026-04-24", type:"expense", amount:430000, category:"Nhà cửa", note:"Sửa chữa"},
+  {id:25, date:"2026-04-25", type:"income", amount:300000, category:"Thưởng", note:"Tiền tip"},
+  {id:26, date:"2026-04-26", type:"expense", amount:520000, category:"Ăn uống", note:"Tiệc sinh nhật"},
+  {id:27, date:"2026-04-27", type:"expense", amount:89000, category:"Di chuyển", note:"Grab"},
+  {id:28, date:"2026-04-28", type:"expense", amount:1250000, category:"Mua sắm", note:"Phụ kiện laptop"},
+  {id:29, date:"2026-04-29", type:"expense", amount:310000, category:"Sức khỏe", note:"Nha khoa"},
+  {id:30, date:"2026-04-30", type:"expense", amount:680000, category:"Nhà cửa", note:"Internet"}
+];
+
+const categoryColors = {
+  "Ăn uống": "#f59e0b", "Di chuyển": "#3b82f6", "Nhà cửa": "#8b5cf6", "Mua sắm": "#ec4899",
+  "Giải trí": "#14b8a6", "Sức khỏe": "#ef4444", "Giáo dục": "#6366f1", "Lương": "#10b981",
+  "Thưởng": "#22c55e", "Tiết kiệm": "#eab308"
+};
+
+let pieChart, barChart, lineChart;
+
+function calculateSummary(filtered) {
+  let totalIncome = 0, totalExpense = 0;
+  filtered.forEach(t => t.type === "income" ? totalIncome += t.amount : totalExpense += t.amount);
+  const net = totalIncome - totalExpense;
+
+  document.getElementById("totalIncome").textContent = totalIncome.toLocaleString('vi-VN') + " ₫";
+  document.getElementById("totalExpense").textContent = totalExpense.toLocaleString('vi-VN') + " ₫";
+  document.getElementById("netBalance").textContent = net.toLocaleString('vi-VN') + " ₫";
+  document.getElementById("transactionCount").textContent = filtered.length;
+}
+
+function renderTransactionList(filtered) {
+  const container = document.getElementById("transactionList");
+  container.innerHTML = "";
+  filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  filtered.forEach(t => {
+    const isIncome = t.type === "income";
+    const div = document.createElement("div");
+    div.className = `flex items-center justify-between p-4 rounded-2xl border ${isIncome ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'}`;
+    div.innerHTML = `
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-2xl flex items-center justify-center flex-shrink-0 ${isIncome ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}">
+          <i class="fa-solid ${isIncome ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'}"></i>
+        </div>
+        <div class="min-w-0">
+          <p class="font-medium text-gray-800 truncate">${t.note}</p>
+          <p class="text-xs text-gray-500">${t.date} • ${t.category}</p>
+        </div>
+      </div>
+      <p class="font-semibold text-base ${isIncome ? 'text-emerald-600' : 'text-rose-600'} whitespace-nowrap">
+        ${isIncome ? '+' : '-'} ${t.amount.toLocaleString('vi-VN')} ₫
+      </p>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function updateAllCharts() {
+  const filter = document.getElementById("filterMonth").value;
+  let filtered = filter ? transactions.filter(t => t.date.startsWith(filter)) : transactions;
+
+  calculateSummary(filtered);
+  renderTransactionList(filtered);
+
+  const categoryExpense = {};
+  filtered.filter(t => t.type === "expense").forEach(t => {
+    categoryExpense[t.category] = (categoryExpense[t.category] || 0) + t.amount;
+  });
+
+  if (pieChart) pieChart.destroy();
+  pieChart = new Chart(document.getElementById("pieChart"), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(categoryExpense),
+      datasets: [{ 
+        data: Object.values(categoryExpense),
+        backgroundColor: Object.keys(categoryExpense).map(c => categoryColors[c] || "#64748b"),
+        borderWidth: 5,
+        borderColor: "#fff"
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }}
+  });
+
+  if (barChart) barChart.destroy();
+  barChart = new Chart(document.getElementById("barChart"), {
+    type: 'bar',
+    data: {
+      labels: Object.keys(categoryExpense),
+      datasets: [{ 
+        label: 'Chi tiêu', 
+        data: Object.values(categoryExpense),
+        backgroundColor: "#6366f1",
+        borderRadius: 10
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+
+  const dates = [...new Set(filtered.map(t => t.date))].sort();
+  const incomeData = dates.map(d => filtered.filter(t => t.date === d && t.type === "income").reduce((s,t)=>s+t.amount,0));
+  const expenseData = dates.map(d => filtered.filter(t => t.date === d && t.type === "expense").reduce((s,t)=>s+t.amount,0));
+
+  if (lineChart) lineChart.destroy();
+  lineChart = new Chart(document.getElementById("lineChart"), {
+    type: 'line',
+    data: {
+      labels: dates,
+      datasets: [
+        { label: 'Thu nhập', data: incomeData, borderColor: "#10b981", tension: 0.4, borderWidth: 3.5 },
+        { label: 'Chi tiêu', data: expenseData, borderColor: "#ef4444", tension: 0.4, borderWidth: 3.5 }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { y: { ticks: { callback: v => (v/1000000).toFixed(1) + 'tr' }}}
+    }
+  });
+}
+
+function resetFilters() {
+  document.getElementById("filterMonth").value = "";
+  updateAllCharts();
+}
+
+document.getElementById("filterMonth").addEventListener("change", updateAllCharts);
+updateAllCharts();
+</script>
+
+</body>
+</html>
